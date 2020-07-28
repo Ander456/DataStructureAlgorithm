@@ -2146,6 +2146,225 @@ public:
         wftw.tounion(4, 8);
         return wftw.groupCnt() - 1;
     }
+    
+    //leetcode 785
+    bool isBipartite(vector<vector<int>>& graph) {
+       //graph是邻接矩阵 所以 行数就是节点数  每一行里的元素就是 当前节点的相邻节点
+       vector<int> color(graph.size());
+       queue<int> q;
+       for (int i = 0; i < graph.size(); i++)
+       {
+           if (color[i] != 0) { //这个可太重要了 染色过的就别看了
+               continue;
+           }
+           q.push(i);
+           color[i] = 1;
+           while(!q.empty())
+           {
+               int v  = q.front();
+               q.pop();
+               vector<int> neighbors = graph[v];
+               for (auto n : neighbors)
+               {
+                   if (color[n] == 0)
+                   {
+                       q.push(n);
+                       color[n] = color[v] == 1 ? 2 : 1;
+                   }
+                   else
+                   {
+                       if (color[n] == color[v])
+                           return false;
+                   }
+               }
+           }
+       }
+       return true;
+    }
+    
+    // leetcode 64
+    int minPathSum(vector<vector<int>>& grid) {
+        //定义dp[i][j]为 走到i行j列的时候的数字最小和
+        int row = grid.size();
+        int colum = grid[0].size();
+        vector<vector<int>> dp(row, vector<int>(colum));
+
+        // base case
+        dp[0][0] = grid[0][0];
+
+        // 状态转移方程
+        // 每次只能向下 或者 向右  所以
+        // dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
+        // 另外考虑到 第一行 只能从左边过来 第一列只能从上面过来
+        // dp[0][j] = dp[0][j-1] + grid[0][j];
+        // dp[i][0] = dp[i-1][0] + grid[i][0];
+        int i,j;
+        for (int i = 1; i < row; i++) {
+            dp[i][0] = dp[i-1][0] + grid[i][0];
+        }
+        for (int j = 1; j < colum; j++) {
+            dp[0][j] = dp[0][j-1] + grid[0][j];
+        }
+        for (i = 1; i < row; i++)
+        {
+            for (j = 1; j < colum; j++)
+            {
+                int m = min(dp[i-1][j], dp[i][j-1]);
+                dp[i][j] = m + grid[i][j];
+            }
+            
+        }
+        return dp[row-1][colum-1];
+    }
+    
+    //leetcode 410
+    /*
+     给定一个非负整数数组和一个整数 m，你需要将这个数组分成 m 个非空的连续子数组。设计一个算法使得这 m 个子数组各自和的最大值最小。
+     这种分割，然后求最的问题的 基本就是 dp  （因为dp就是求最问题的常用解）
+     这种分割问题，核心思想是 分割点的枚举 因为分割点事不确定的我们需要 从0-长度这么来枚举
+     */
+     int splitArray(vector<int>& nums, int m) {
+         //1. 要求什么 ？ 子数组各自和的最大值最小 那么我们dp这么定义就行了
+         //定义dp为 长度为 i 切割成 j 段 的 子数组中 和 的最小值
+         int n = nums.size();
+         vector<vector<long long>> dp(n + 1, vector<long long>(m + 1, INT_MAX));
+         
+         // 补充 因为我们求的是子数组中元素和 所以需要 求个前缀和先
+         vector<long long>sum (n + 1, 0);
+         for (int i = 1; i <= n; i++) {
+             sum[i] = sum[i - 1] + nums[i-1];
+         }
+         
+         //2. base case
+         // 很简单的想到 如果只有0个数的时候 那么。。结果没啥意义 是 0
+         for (int i = 0; i <= m; i++) {
+             dp[0][i] = 0;
+         }
+
+         //3.状态转移方程
+         // 这种切割问题的核心是 遍历切割点 也就是 dp[i][j] = min(dp[i][j], max(dp[k-1][j-1], sum[i]-sum[k-1])); 因为求的是最小值所以 用min
+         //k表示前k个数分为 j-1段 k+1到第i个数分为第j段  来枚举这个 切割点 也就是 切割点k
+         for (int i = 1; i <= n; i++) { //遍历n个数
+             for (int j = 1; j <= min(m, i); j++) { //遍历分成j段
+                 for (int k = j; k <= m; k++) { //j段里 k-1个数 和 k+1到i个数 也就是遍历了所有的情况 i个数j段 然后里面数的按切割点划分 组成的子数组和
+                     dp[i][j] = min(dp[i][j], max(dp[k - 1][j - 1], sum[i] - sum[k - 1]));
+                 }
+             }
+         }
+         return dp[n][m];
+     }
+    
+    //leetcode64
+    /*
+     给定一个包含非负整数的 m x n 网格，请找出一条从左上角到右下角的路径，使得路径上的数字总和为最小。
+     说明：每次只能向下或者向右移动一步。
+     最值问题 状态转移明确 向下 或者 向右
+     */
+    int minPathSum2(vector<vector<int>>& grid) {
+        //1. 定义dp为 走到 i j时候数字总和最小
+        int row = grid.size();
+        int colum = grid[0].size();
+        vector<vector<int>> dp(row + 1, vector<int>(colum + 1));
+        
+        //2. base case
+        dp[0][0] = grid[0][0];
+        
+        //3. state transform
+        for (int i = 1; i < row; i++) {
+            dp[i][0] = dp[i-1][0] + grid[i][0];
+        }
+        
+        for (int i = 1; i < colum; i++) {
+            dp[0][i] = dp[0][i-1] + grid[0][i];
+        }
+        
+        for (int i = 1; i < row; i++) {
+            for (int j = 1; j <colum; j++) {
+                dp[i][j] = min(dp[i-1][j], dp[i][j-1]) + grid[i][j];
+            }
+        }
+        return dp[row-1][colum-1];
+    }
+    
+    //leetcode 剑指offer11
+    /*
+     把一个数组最开始的若干个元素搬到数组的末尾，我们称之为数组的旋转。输入一个递增排序的数组的一个旋转，输出旋转数组的最小元素。例如，数组 [3,4,5,1,2] 为 [1,2,3,4,5] 的一个旋转，该数组的最小值为1。
+     */
+    int minArray(vector<int>& numbers) {
+        int size = numbers.size();
+        int low = 0;
+        int high = size - 1;
+        while (low < high) { //通过二分法 去找 最小值 如果 中间的值 小于 我们末尾的值 表明 最小值 在中间到末尾这段
+            int mid = (low + high) / 2;
+            if (numbers[mid] < numbers[high]) {
+                high = mid;
+            }
+            else if (numbers[mid] > numbers[high]) // 如果中间的值 大于末尾的值，证明 有序数组前x个数搬到了后面，最小值在后面这段
+            {
+                low = mid + 1;
+            }
+            else // 如果中间值和末位置相等，可能有相同数的情况 因为是有序数组所以 --
+            {
+                high--;
+            }
+        }
+        return numbers[low];
+    }
+    
+    //leetcode 35
+    /*
+     给定一个排序数组和一个目标值，在数组中找到目标值，并返回其索引。如果目标值不存在于数组中，返回它将会被按顺序插入的位置。
+     你可以假设数组中无重复元素
+     */
+    int searchInsert(vector<int>& nums, int target) {
+        int size = nums.size();
+        int low = 0;
+        int high = size - 1;
+
+        if (nums[low] > target)
+            return 0;
+        if (nums[high] < target)
+            return high + 1;
+
+        while (low < high) {
+            int mid = (low + high) / 2;
+            if (nums[mid] < target) {
+                low = mid + 1;
+            }
+            else if (nums[mid] > target)
+            {
+                high = mid - 1;
+            }
+            else
+            {
+                return mid;
+            }
+        }
+        if (nums[low] >= target)
+            return low;
+        else
+            return low + 1;
+    }
+    
+    //leetcode 96 给定一个整数 n，求以 1 ... n 为节点组成的二叉搜索树有多少种？
+    /**
+        可以先简单的分析下这题，n个连续的数 多少种二叉搜索树？ 二叉搜索树的特点是 左子树都小于根节点 右子树的节点值都大于根节点
+        我们简单的枚举 如果 1作为根节点 ，那么 后面n-1个数 有多少种？ 递推到最后 只有 1 个数的时候 这样递推的 可以用动态规划来解决
+        这有一个数学公式  卡特兰数
+     */
+    int numTrees(int n) {
+        //1. 定义dp为 i个数时候 二叉搜索树的种数
+        vector<int> dp (n + 1, 0);
+        //2. base case
+        dp[0] = 1;
+        dp[1] = 1;
+        for (int i = 2; i <=n ; i++) {
+            for (int j = 1; j <= i; j++) { //可以这么理解 比如 i= 2表示 2个数 然后 j呢是枚举 第一个 到 最后一个数 最为根节点的情况
+                dp[i] += dp[j-1] * dp[i - j];
+            }
+        }
+        return dp[n];
+    }
 };
 
 class NumArray {
@@ -2408,13 +2627,17 @@ int main(int argc, const char * argv[]) {
 //    cout << bfs.ismarked(7) << endl;
 //
 
+//    vector<int> v1 {1,3};
+//    vector<int> v2 {0,2};
+//    vector<int> v3 {1,3};
+//    vector<int> v4 {0,2};
+//    vector<vector<int>> v {v1,v2,v3,v4};
+//    sol.isBipartite(v);
     
-    for (int i = 0; i < 100000; i++) {
-        Trie trie;
-        trie.insert("helloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworldhelloworld");
-    }
-    
-    cin.get();
-    
+    vector<int> v1 {1,3,1};
+    vector<int> v2 {1,5,1};
+    vector<int> v3 {4,2,1};
+    vector<vector<int>> v {v1, v2, v3};
+    sol.minPathSum(v);
     return 0;
 };
